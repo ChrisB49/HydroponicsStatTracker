@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  hydrostattrackdb:
+    container_name: pg_hydrostattrack_container
+    image: postgis/postgis:13-3.3-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: hydrostattrackwebportal
+    ports:
+      - "5432:5432"
+    volumes:
+      -  hydrostattrackdbData:/var/lib/postgresql/data
+  pgadmin:
+    container_name: pgadmin4_hydrostattrack_container
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+  hydrostattrackwebportal:
+    container_name: hydrostattrack_webportal
+    build:
+      context: .
+    privileged: true
+    network_mode: service:hydrostattrackdb
+    command: sleep infinity
+    environment:
+      POSTGRES_DATABASE: hydrostattrackwebportal
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_HOST: hydrostattrackdb
+      POSTGRES_PORT: 5432
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    tmpfs:
+      - /tmp
+      - /run
+      - /run/lock
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - ../..:/workspaces:cached
+  hydrostattrackredis:
+    container_name: hydrostattrack_redis
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+volumes:
+   hydrostattrackdbData:
